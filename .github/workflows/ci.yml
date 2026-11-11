@@ -16,9 +16,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python: ["3.9", "3.11", "3.13"]
+        # Python 3.9 reached end of life in October 2025 and is no longer
+        # available on the ubuntu-24.04 runner image, so it is pinned to the
+        # 22.04 image. Everything else runs on the current LTS.
         include:
+          - os: ubuntu-22.04
+            python: "3.9"
+          - os: ubuntu-latest
+            python: "3.11"
+          - os: ubuntu-latest
+            python: "3.13"
           - os: windows-latest
             python: "3.12"
           - os: macos-latest
