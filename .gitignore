@@ -1,0 +1,30 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local secrets & raw data that must never be committed
+.env
+.env.*
+secrets/
+data/raw/
+data/private/
+*.cookies
+cookies.txt
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini

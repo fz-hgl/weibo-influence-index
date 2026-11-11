@@ -1,0 +1,134 @@
+{
+  "note": "latent 是生成器写入的潜在影响力，评分器看不到它：连续因子取生成参数的目标水平，行为/权威取生成后事件的实际加权和。它检验的是「实现能否从带噪观测还原已知真值」，不检验六因子理论本身。rules 是用常识写的原型断言。任何一项失败，回去调权重或改因子定义，不要改这里来凑结论。",
+  "latent": {
+    "a01": 0.84615,
+    "a02": 0.6006,
+    "a03": 0.728333,
+    "a04": 0.570483,
+    "a05": 0.462858,
+    "a06": 0.341233,
+    "a07": 0.567033,
+    "a08": 0.5959,
+    "a09": 0.245933,
+    "a10": 0.1408
+  },
+  "traits": {
+    "a01": {
+      "reach": 0.95,
+      "duration": 0.88,
+      "intensity": 0.9,
+      "spillover": 0.6666666666666667
+    },
+    "a02": {
+      "reach": 0.9,
+      "duration": 0.72,
+      "intensity": 0.75,
+      "spillover": 0.24
+    },
+    "a03": {
+      "reach": 0.55,
+      "duration": 0.95,
+      "intensity": 0.72,
+      "spillover": 0.6888888888888889
+    },
+    "a04": {
+      "reach": 0.99,
+      "duration": 0.52,
+      "intensity": 0.88,
+      "spillover": 0.22222222222222224
+    },
+    "a05": {
+      "reach": 0.62,
+      "duration": 0.5,
+      "intensity": 0.6,
+      "spillover": 0.4888888888888889
+    },
+    "a06": {
+      "reach": 0.52,
+      "duration": 0.45,
+      "intensity": 0.45,
+      "spillover": 0.18222222222222223
+    },
+    "a07": {
+      "reach": 0.4,
+      "duration": 0.74,
+      "intensity": 0.55,
+      "spillover": 0.5555555555555556
+    },
+    "a08": {
+      "reach": 0.4,
+      "duration": 0.78,
+      "intensity": 0.5,
+      "spillover": 1.0
+    },
+    "a09": {
+      "reach": 0.45,
+      "duration": 0.32,
+      "intensity": 0.48,
+      "spillover": 0.05555555555555556
+    },
+    "a10": {
+      "reach": 0.2,
+      "duration": 0.26,
+      "intensity": 0.3,
+      "spillover": 0.03333333333333333
+    }
+  },
+  "thresholds": {
+    "spearman_min": 0.8,
+    "kendall_min": 0.6,
+    "top_k": 3,
+    "top_k_overlap_min": 2
+  },
+  "rules": [
+    {
+      "artist_id": "a01",
+      "metric": "stars",
+      "op": "ge",
+      "value": 7.5,
+      "label": "塌房顶流应≥7.5 星（触达+行为改变+监管介入）"
+    },
+    {
+      "artist_id": "a01",
+      "metric": "valence",
+      "op": "lt",
+      "value": -0.3,
+      "label": "塌房顶流极性应为明显负值"
+    },
+    {
+      "artist_id": "a03",
+      "metric": "percentile.authority",
+      "op": "ge",
+      "value": 0.8,
+      "label": "央媒集体发声者，权威百分位应进前 20%"
+    },
+    {
+      "artist_id": "a03",
+      "metric": "valence",
+      "op": "gt",
+      "value": 0.2,
+      "label": "悼念型舆论极性应偏正"
+    },
+    {
+      "artist_id": "a04",
+      "metric": "valence",
+      "op": "lt",
+      "value": -0.1,
+      "label": "粉黑大战型舆论应偏负"
+    },
+    {
+      "artist_id": "a07",
+      "metric": "percentile.spillover",
+      "op": "ge",
+      "value": 0.6,
+      "label": "推进行业规范者应有明显跨圈层外溢"
+    },
+    {
+      "artist_id": "a10",
+      "metric": "stars",
+      "op": "le",
+      "value": 4.0,
+      "label": "低强度对照组应≤4 星"
+    }
+  ]
+}

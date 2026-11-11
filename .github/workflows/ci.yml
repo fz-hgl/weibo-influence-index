@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: py${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.9", "3.11", "3.13"]
+        include:
+          - os: windows-latest
+            python: "3.12"
+          - os: macos-latest
+            python: "3.12"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Unit tests
+        run: pytest
+
+      - name: Regenerate the demo dataset
+        run: wii demo --out data/demo
+
+      - name: Build the index and the report
+        run: wii build --data data/demo --out build
+
+      - name: Validate (rank recovery + archetype assertions)
+        run: wii validate --data data/demo
+
+      - name: Explainability smoke test
+        run: wii explain --data data/demo --artist a01
+
+      - name: Weight sensitivity smoke test
+        run: wii sensitivity --data data/demo
+
+  self-contained:
+    name: Report must open offline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: python -m pip install -e ".[dev]"
+      - run: wii demo && wii build
+
+      - name: Fail if the report loads any remote asset
+        run: |
+          python - <<'PY'
+          import re, sys, pathlib
+          html = pathlib.Path("build/report.html").read_text(encoding="utf-8")
+          # A citation <a href="https://..."> is fine: it costs no request until
+          # clicked. What must not exist is anything the browser *loads*:
+          # <img src>, <script src>, <link href>, CSS url(...).
+          patterns = [
+              r'<img[^>]+src\s*=\s*["\'](https?://[^"\']+)',
+              r'<script[^>]+src\s*=\s*["\'](https?://[^"\']+)',
+              r'<link[^>]+href\s*=\s*["\'](https?://[^"\']+)',
+              r'url\(\s*["\']?(https?://[^)"\']+)',
+          ]
+          remote = sorted({m for p in patterns for m in re.findall(p, html, re.I)})
+          if remote:
+              print("Report is not self-contained; remote assets found:")
+              print("\n".join(remote))
+              sys.exit(1)
+          print("OK: no remote assets in build/report.html")
+          PY
+
+      - name: Check that no crawler sneaked in
+        run: |
+          if grep -rniE "selenium|playwright|requests\.get|httpx|BeautifulSoup|scrapy" src/ ; then
+            echo "::error::This repository intentionally ships no crawler. See ETHICS.md §6."
+            exit 1
+          fi
+          echo "OK: no collection code found"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: report
+          path: |
+            build/report.html
+            build/index.json
+            build/validation.json
+          if-no-files-found: error

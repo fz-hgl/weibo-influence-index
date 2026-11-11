@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "weibo-influence-index"
+version = "1.0.0"
+description = "A reproducible, auditable 1-10 star index for public-opinion influence on Weibo (magnitude axis) with sentiment polarity reported separately."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "weibo-influence-index contributors" }]
+keywords = ["weibo", "index", "sentiment", "data-journalism", "reproducibility", "nlp"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Sociology",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+http = []
+
+[project.scripts]
+wii = "wii.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/OWNER/weibo-influence-index"
+Issues = "https://github.com/OWNER/weibo-influence-index/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
