@@ -305,11 +305,54 @@ ROSTER: List[Dict[str, Any]] = [
 
 PLATFORMS = [("weibo", 0.72), ("douyin", 0.14), ("xiaohongshu", 0.08), ("bilibili", 0.06)]
 
-TEXT_TEMPLATES = [
-    "合成示例文本：此处不代表任何真实言论（{n}）。",
-    "合成示例文本，用于演示情感聚合口径（{n}）。",
-    "Synthetic sample row, no real statement is represented ({n}).",
-]
+# Demo texts are templates chosen by the mention's *latent* sentiment bucket,
+# so `wii sentiment` has something to read and its output can be compared with
+# the generator's intent. They are obviously synthetic on purpose: a demo that
+# looks like real posts invites people to treat it as real data.
+TEXT_TEMPLATES = {
+    "strong_negative": [
+        "合成示例：这次真的太让人失望了，彻底塌房，抵制（{n}）。",
+        "合成示例：难看又难看，恶心到我了，果断脱粉（{n}）。",
+        "合成示例：离谱到极点，造假还控评，真是笑话（{n}）。",
+    ],
+    "mild_negative": [
+        "合成示例：有点失望，感觉有点敷衍，不太行（{n}）。",
+        "合成示例：一般般吧，节奏拖沓，有点尴尬（{n}）。",
+        "合成示例：谈不上难看，但也确实没什么亮点（{n}）。",
+    ],
+    "neutral": [
+        "合成示例：路过看看，暂时没什么感觉（{n}）。",
+        "合成示例：等官方通报，先不站队（{n}）。",
+        "合成示例：吃瓜中，信息还不完整（{n}）。",
+    ],
+    "mild_positive": [
+        "合成示例：还不错，演技在线，期待下一部（{n}）。",
+        "合成示例：有点惊喜，整体挺用心的（{n}）。",
+        "合成示例：算是合格，比预想的好一些（{n}）。",
+    ],
+    "strong_positive": [
+        "合成示例：太好看了，真的惊艳，非常喜欢（{n}）。",
+        "合成示例：精彩到哭，值得二刷，强烈推荐（{n}）。",
+        "合成示例：优秀又真诚，这波必须支持（{n}）。",
+    ],
+}
+
+
+def _sentiment_bucket(sentiment: float) -> str:
+    if sentiment <= -0.55:
+        return "strong_negative"
+    if sentiment < -0.12:
+        return "mild_negative"
+    if sentiment <= 0.12:
+        return "neutral"
+    if sentiment < 0.55:
+        return "mild_positive"
+    return "strong_positive"
+
+
+def _synthetic_text(sentiment: float, seq: int) -> str:
+    variants = TEXT_TEMPLATES[_sentiment_bucket(sentiment)]
+    return variants[seq % len(variants)].format(n=seq)
 
 
 def _pick(rng: random.Random, pairs: List[Tuple[str, float]]) -> str:
@@ -423,7 +466,7 @@ def generate(out_dir: Path, *, seed: int = SEED) -> Dict[str, Any]:
                         "vertical": vertical,
                         "weight": account_weight(followers, verified, age, activity),
                         "is_spam": is_spam,
-                        "text": TEXT_TEMPLATES[mention_seq % len(TEXT_TEMPLATES)].format(n=mention_seq),
+                        "text": _synthetic_text(sentiment, mention_seq),
                     }
                 )
                 per_mention = 20_000 * (10 ** (1.5 * reach_t)) * (2.4 if near_spike else 1.0)

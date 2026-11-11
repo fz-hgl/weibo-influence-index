@@ -3,6 +3,43 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循语义化版本。**任何影响星级取值的改动都会升 minor 或 major，并在此留痕。**
 
+## [1.1.0] — 2026-11-11
+
+把 v1.0.0 路线图里"真实数据没有情感分怎么办"这一块补上了。**星级公式、权重、封顶全部未动**：
+同一份数据在 1.0.0 与 1.1.0 下得到同一个星级，变的是极性这一路的可信度与可审计性。
+
+### 新增
+
+- **内置情感词典基线**（`src/wii/sentiment/`）：极性词表 + 否定（作用域 5 字、先抹掉 `不过/非常` 等假否定）+ 程度副词 + 反讽规则 + 少量 emoji。
+  每个分数都带 `hits`（命中词、是否被否定、程度倍数、贡献）、`irony` 标记与 `confidence`（**启发式，不是概率**）。
+- **`wii sentiment`**：离线给 `mentions.jsonl` 打分，输出 `sentiment`、`sentiment_detail`、`sentiment_source`，并保留 `sentiment_original`；
+  `--compare` 输出与既有打分的 MAE / 同号率 / 明确极性一致率。**不判断谁更接近真相。**
+- **`wii build --sentiment lexicon`**：不信任文件里的极性时，从文本质地重算，报告里注明来源。
+- **极性 95% 自助法区间**：重抽样单位是单条提及，种子由 `artist_id` 派生（可复现），样本 < 30 条不给区间。
+  写入 `index.json`（`valence_ci`）、报告逐人区块与 `wii explain`。
+- **`wii validate` 新增两项稳定性检查**：单因子权重 ±5% 时的最大名次位移（阈值 ≤ 2）与最大星级位移（阈值 ≤ 0.6）。
+  阈值在 `config.STABILITY`，与 `wii sensitivity` 共用同一套计算。
+- **GitHub Pages workflow**（`.github/workflows/pages.yml`）：只发布合成 demo 报告。
+- 演示数据文本改为按潜在情感桶生成的模板句（仍全部标 `合成示例`），使词典基线的输出可被人工核对；
+  `wii sentiment --compare` 在 demo 上给出 MAE 0.161、同号率 97.8%。
+
+### 变更
+
+- `INDEX_VERSION` 1.0.0 → 1.1.0；新增 `LEXICON_VERSION`（1.0），词典改动单独记版本。
+- `ArtistScore` 增加 `valence_ci_low/high`；`index.json` 增加 `valence_ci`。
+- `run_backtest()` 增加可选 `cohort` 参数；不传时跳过稳定性检查（保证旧调用仍可用）。
+- 报告"已知限制"补充：词典基线能接住带标记的反讽，接不住不带标记的阴阳怪气；极性区间不修正样本偏差。
+- 84 个离线测试（v1.0.0 为 58 个）。
+
+### 校验结果（可复现）
+
+```
+PASS 12/12
+Spearman ρ = 0.960   Kendall τ = 0.909   Top-3 重合 2/3
+stability.rank_shift  最大 1 名（阈值 ≤ 2）
+stability.stars_shift 最大 0.30 ★（阈值 ≤ 0.6）
+```
+
 ## [1.0.0] — 2026-11-11
 
 首个可发布版本。

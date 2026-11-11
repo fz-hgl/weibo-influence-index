@@ -96,6 +96,7 @@ def explain_artist(score: ArtistScore, weights: Dict[str, float]) -> Dict[str, A
         "stars": score.stars,
         "magnitude": round(score.magnitude, 4),
         "valence": round(score.valence, 4),
+        "valence_ci": {"low": score.valence_ci_low, "high": score.valence_ci_high},
         "valence_label": score.valence_diag.get("label"),
         "arithmetic": {
             "formula": "stars = 1 + 9 * sum(weight_i * percentile_i)",
@@ -130,10 +131,16 @@ def explain_index(result: IndexResult, artist_id: Optional[str] = None) -> Dict[
 def render_text(explanation: Dict[str, Any]) -> str:
     """Plain-text rendering for the CLI."""
     lines: List[str] = []
+    ci = explanation.get("valence_ci") or {}
+    ci_txt = (
+        f"，95% 区间 [{ci['low']:+.2f}, {ci['high']:+.2f}]"
+        if ci.get("low") is not None and ci.get("high") is not None
+        else "，样本不足未给区间"
+    )
     head = (
         f"{explanation['artist']}  →  {explanation['stars']:.1f} 星"
         f"（合成幅度 {explanation['magnitude']:.4f}，极性 {explanation['valence']:+.3f}"
-        f" {explanation.get('valence_label') or ''}）"
+        f" {explanation.get('valence_label') or ''}{ci_txt}）"
     )
     lines.append(head)
     lines.append("=" * len(head))

@@ -10,12 +10,13 @@
 ## 0. 发布前 5 分钟自检
 
 ```bash
-pytest -q                     # 必须全绿（58 个用例）
+pytest -q                     # 必须全绿（84 个用例）
 wii demo && wii build && wii validate
 wii explain --data data/demo --artist a01
+wii sentiment --data data/demo --out build/mentions.scored.jsonl --compare
 ```
 
-- [ ] `wii validate` 输出 `PASS (10/10)`
+- [ ] `wii validate` 输出 `PASS (12/12)`
 - [ ] `build/report.html` 断网能打开，图表正常
 - [ ] 仓库里没有 `.env`、cookie、`data/raw/`
 - [ ] 没有真实自然人姓名、照片、真实信源链接混进 `data/demo`
@@ -52,7 +53,7 @@ grep -rn "OWNER" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=build
 ```bash
 git init -b main
 git add .
-git commit -m "feat: v1.0.0 — reproducible six-factor attention index"
+git commit -m "feat: v1.1.0 — reproducible six-factor attention index"
 
 # 先在 GitHub 上建空仓库（不要勾选 README/LICENSE/.gitignore）
 git remote add origin https://github.com/<你的账号>/weibo-influence-index.git
@@ -109,45 +110,34 @@ wii build --data data/demo --out build
 ## 5. 打 tag 与 Release
 
 ```bash
-git tag -a v1.0.0 -m "v1.0.0: six-factor attention index, reproducible and explainable"
-git push origin v1.0.0
+git tag -a v1.1.0 -m "v1.1.0: sentiment baseline, polarity intervals, stability checks"
+git push origin v1.1.0
 ```
 
-GitHub → Releases → Draft a new release → 选择 `v1.0.0`：
+GitHub → Releases → Draft a new release → 选择 `v1.1.0`：
 
-- 标题：`v1.0.0 — 可复算的六因子注意力指数`
-- 正文：直接贴 `CHANGELOG.md` 的 1.0.0 段落
+- 标题：`v1.1.0 — 可复算的六因子注意力指数`
+- 正文：直接贴 `CHANGELOG.md` 的 1.1.0 段落
 - 附件：上传 `build/report.html`（读者不装 Python 也能看报告）
 
 ---
 
-## 6. 可选：GitHub Pages 自动发布报告
+## 6. GitHub Pages 自动发布报告
 
-想让访客直接看报告，加一个 workflow（当前仓库**未**启用，路线图里有）：
+仓库已带 `.github/workflows/pages.yml`：推 main 时把**合成 demo** 报告发到 Pages。
+第一次需要在 Settings → Pages 里把 Source 选成 **GitHub Actions**。
 
 ```yaml
-name: Pages
-on:
-  push:
-    branches: [main]
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment: github-pages
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - run: python -m pip install -e . && wii demo && wii build
-      - run: cp build/report.html build/index.html
-      - uses: actions/upload-pages-artifact@v3
-        with: { path: build }
-      - uses: actions/deploy-pages@v4
+# .github/workflows/pages.yml（仓库里已有，这里只列关键动作）
+- wii demo --out data/demo
+- wii build --data data/demo --out site
+- cp site/report.html site/index.html      # Pages 需要 index.html
+- touch site/.nojekyll                     # 防止 GitHub 用 Jekyll 处理
+- actions/upload-pages-artifact + actions/deploy-pages
 ```
+
+它只发布 `data/demo` 的合成报告，不碰 `data/raw/`。启用后 Pages 地址会出现在仓库的
+Deployments / Environments 里；记得把 README 里的链接换成真实地址。
 
 注意：Pages 是**公开可访问**的。如果将来换成真实数据，先回到 [ETHICS.md](ETHICS.md) §3 把清单走一遍。
 
@@ -173,4 +163,4 @@ jobs:
 | 破坏性变更（表结构、删除因子、改变星级语义） | **major**（2.0.0） |
 | 文档、报告样式、CLI 输出格式 | **patch**（1.0.1） |
 
-星级一旦发布就带着版本号走。**不要出现"同一个 v1.0.0 算出两个不同星级"**——那会让整个项目的可复算承诺失效。
+星级一旦发布就带着版本号走。**不要出现"同一个 v1.1.0 算出两个不同星级"**——那会让整个项目的可复算承诺失效。

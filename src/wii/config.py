@@ -6,7 +6,7 @@ If a number here changes, INDEX_VERSION must change too (see CHANGELOG.md).
 
 from __future__ import annotations
 
-INDEX_VERSION = "1.0.0"
+INDEX_VERSION = "1.1.0"
 SCHEMA_VERSION = "1.0"
 
 # ---------------------------------------------------------------------------
@@ -165,6 +165,25 @@ VALENCE_NEUTRAL_BAND = 0.15
 # Spam / bot filtering: mentions flagged is_spam are excluded from all
 # sentiment statistics and reported separately as spam_ratio.
 SPAM_EXCLUDED = True
+
+# Confidence interval for valence. Posts are the resampling unit; the seed is
+# derived from the artist id, so the interval is reproducible.
+# Below min_n we report no interval at all rather than a wide one that looks
+# informative.
+VALENCE_BOOTSTRAP = {
+    "iterations": 400,
+    "alpha": 0.05,
+    "min_n": 30,
+}
+
+# Stability thresholds used by `wii validate`: how far may the ranking move
+# when a single weight is nudged by ±5%? Exceeding this is a measurement
+# problem, not a weight problem.
+STABILITY = {
+    "weight_delta": 0.05,
+    "max_rank_shift": 2,
+    "max_stars_shift": 0.6,
+}
 
 # Account weighting for sentiment aggregation.
 ACCOUNT_WEIGHTS = {

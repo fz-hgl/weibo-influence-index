@@ -40,12 +40,25 @@ def test_demo_is_entirely_synthetic(demo_dir):
 
 
 def test_backtest_passes_on_demo(demo_dir):
-    _, result = _run(demo_dir)
+    cohort, result = _run(demo_dir)
     expectations = backtest.load_expectations(demo_dir / "expectations.json")
-    report = backtest.run_backtest(result, expectations)
+    report = backtest.run_backtest(result, expectations, cohort=cohort)
     failures = [c for c in report.checks if not c.passed]
     assert not failures, backtest.render_text(report)
     assert report.spearman is not None and report.spearman >= 0.8
+
+
+def test_backtest_includes_stability_checks(demo_dir):
+    cohort, result = _run(demo_dir)
+    expectations = backtest.load_expectations(demo_dir / "expectations.json")
+    report = backtest.run_backtest(result, expectations, cohort=cohort)
+    names = [c.name for c in report.checks]
+    assert "stability.rank_shift" in names
+    assert "stability.stars_shift" in names
+    assert len(report.checks) == 12
+    # Each stability row must also expose the star shift, not just the rank move.
+    rows = backtest.weight_sensitivity(cohort, result.weights)
+    assert all("max_star_shift" in r for r in rows)
 
 
 def test_spearman_sanity():

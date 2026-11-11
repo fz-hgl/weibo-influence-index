@@ -235,11 +235,17 @@ def _artist_block(
         evidence.append('<p class="lead">该窗口内无已核实事件。这不等于「什么都没发生」，只等于「没有可引用的信源」。</p>')
 
     vd = a.valence_diag
+    ci_txt = (
+        f"；换一批帖子的 95% 区间 [{a.valence_ci_low:+.2f}, {a.valence_ci_high:+.2f}]"
+        if a.valence_ci_low is not None and a.valence_ci_high is not None
+        else f"；样本不足 {config.VALENCE_BOOTSTRAP['min_n']} 条，不提供区间（区间只会假装精确）"
+    )
     val_detail = (
         f"样本 {vd.get('n', 0):,} 条（剔除疑似水军 {vd.get('spam_excluded', 0):,} 条，"
         f"占 {vd.get('spam_ratio', 0) * 100:.1f}%）；"
         f"正 {vd.get('share_positive', 0) * 100:.0f}% / 中性 {vd.get('share_neutral', 0) * 100:.0f}% / "
         f"负 {vd.get('share_negative', 0) * 100:.0f}%；极性标准差 {a.valence_sd:.2f}"
+        f"{ci_txt}"
     )
 
     timeline = S.mini_timeline(a.evidence, result.window_start, result.window_end, width=900, height=112)
@@ -401,10 +407,12 @@ def build_html(
     <li>数据表：{S.esc("、".join(result.tables_used) or "—")}。{S.esc(data_note)}</li>
     <li>注意力 ≠ 影响：本指数测的是「被谈论的规模与持久度」，不是「改变了多少人的行为」。
         命名上它叫 attention index，不叫 impact index。</li>
-    <li>中文反讽（「呵呵」「真有你的」）会让词典法情感分析系统性出错；本版用账号加权缓解控评，
-        但不能消除。极性数字应视为「语调分布」，不是民意调查。</li>
+    <li>中文反讽（「呵呵」「真有你的」）会让词典法情感分析系统性出错。本仓库内置了一份可审计的词典基线
+        （<span class="mono">wii sentiment</span>，含否定、程度副词与反讽规则），它比裸词典好，
+        但仍然会漏掉不带标记的阴阳怪气。极性数字应视为「语调分布」，不是民意调查。</li>
     <li>跨年代不可比：2010 年前没有可比的社交媒体计数，因此本指数只对窗口内的数据成立。</li>
-    <li>触达使用平台口径的累计阅读量，是曝光次数代理，不是去重人数，故不提供置信区间。</li>
+    <li>极性区间来自对提及的重抽样，只回答「换一批帖子，这个均值会飘多少」；
+        触达使用平台口径的累计阅读量，是曝光次数代理，不是去重人数，故不给区间。</li>
   </ul>
 </section>
 

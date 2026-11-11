@@ -18,7 +18,7 @@ pip install -e ".[dev]"
 
 pytest                       # 全绿才能提交
 wii demo && wii build        # 生成 build/report.html
-wii validate                 # 期望 PASS 10/10
+wii validate                 # 期望 PASS 12/12
 ```
 
 可选：`pip install ruff`，然后 `ruff check src tests --select F,E9`。
@@ -33,10 +33,11 @@ wii validate --data data/demo
 wii sensitivity --data data/demo
 ```
 
-- [ ] 测试全绿（58 个用例）
-- [ ] `wii validate` 10/10 通过
+- [ ] 测试全绿（84 个用例）
+- [ ] `wii validate` 12/12 通过（含两项权重稳定性）
 - [ ] 报告在浏览器里能打开，无外部请求（断网验证一次）
 - [ ] 没有把 `data/raw/`、`.env`、cookie 文件带进提交
+- [ ] 改了词典（`sentiment/lexicon.py`）就升 `LEXICON_VERSION`，并在 CHANGELOG 里说明极性会变
 
 ## 改因子 / 加因子的流程
 

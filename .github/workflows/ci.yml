@@ -45,7 +45,13 @@ jobs:
       - name: Build the index and the report
         run: wii build --data data/demo --out build
 
-      - name: Validate (rank recovery + archetype assertions)
+      - name: Offline sentiment baseline
+        run: wii sentiment --data data/demo --out build/mentions.scored.jsonl --compare
+
+      - name: Build with polarity recomputed from text
+        run: wii build --data data/demo --sentiment lexicon --out build/lexicon
+
+      - name: Validate (rank recovery + archetypes + weight stability)
         run: wii validate --data data/demo
 
       - name: Explainability smoke test

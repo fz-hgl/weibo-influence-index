@@ -8,7 +8,7 @@ abstract: >-
   change, authority intervention); sentiment polarity is reported on a separate
   axis and never folded into the score. Verified events and opinion mentions are
   kept in two separate tables.
-version: "1.0.0"
+version: "1.1.0"
 date-released: "2026-11-11"
 license: MIT
 type: software

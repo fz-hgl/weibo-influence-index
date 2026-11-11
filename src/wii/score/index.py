@@ -37,6 +37,8 @@ class ArtistScore:
     valence_sd: float
     factors_diag: Dict[str, Dict]
     valence_diag: Dict[str, Any]
+    valence_ci_low: Optional[float] = None
+    valence_ci_high: Optional[float] = None
     evidence: List[Dict[str, Any]] = field(default_factory=list)
     meta: Dict[str, Any] = field(default_factory=dict)
 
@@ -53,6 +55,10 @@ class ArtistScore:
             "magnitude": round(self.magnitude, 4),
             "valence": round(self.valence, 4),
             "valence_sd": round(self.valence_sd, 4),
+            "valence_ci": {
+                "low": self.valence_ci_low,
+                "high": self.valence_ci_high,
+            },
             "valence_label": self.valence_diag.get("label"),
             "raw": {k: round(v, 4) for k, v in self.raw.items()},
             "normalized": {k: round(v, 4) for k, v in self.normalized.items()},
@@ -180,6 +186,8 @@ def compute_index(
                 valence_sd=val_sd,
                 factors_diag=raw_all[aid].diagnostics,
                 valence_diag=val_diag,
+                valence_ci_low=val_diag.get("ci_low"),
+                valence_ci_high=val_diag.get("ci_high"),
                 evidence=evidence,
                 meta={
                     "category": artist.category,

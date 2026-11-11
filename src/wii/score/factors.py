@@ -16,6 +16,7 @@ from typing import Dict, List, Sequence, Tuple
 
 from .. import config
 from ..schema import Cohort, Mention
+from .stats import bootstrap_mean_ci, weighted_mean, weighted_sd
 
 
 # ---------------------------------------------------------------------------
@@ -25,21 +26,8 @@ def _log10p(x: float) -> float:
     return math.log10(1.0 + max(0.0, x))
 
 
-def _weighted_mean(pairs: Sequence[Tuple[float, float]]) -> float:
-    num = sum(v * w for v, w in pairs)
-    den = sum(w for _, w in pairs)
-    return num / den if den else 0.0
-
-
-def _weighted_sd(pairs: Sequence[Tuple[float, float]]) -> float:
-    mu = _weighted_mean(pairs)
-    num = sum(w * (v - mu) ** 2 for v, w in pairs)
-    den = sum(w for _, w in pairs)
-    if den <= 0 or len(pairs) < 2:
-        return 0.0
-    # Frequency-weighted sample sd (den - 1 is not exact for weights, so we
-    # report a population-style sd and say so in the docs).
-    return math.sqrt(num / den)
+_weighted_mean = weighted_mean
+_weighted_sd = weighted_sd
 
 
 def daily_volume(mentions: Sequence[Mention], *, exclude_spam: bool = True) -> Dict[str, int]:
@@ -328,6 +316,13 @@ def valence(cohort: Cohort, artist_id: str) -> Tuple[float, float, Dict]:
     neg = sum(1 for m in ms if m.sentiment < -config.VALENCE_NEUTRAL_BAND) / len(ms)
     neu = 1.0 - pos - neg
     spam = len(all_ms) - len(ms)
+    lo, hi, ci_diag = bootstrap_mean_ci(
+        pairs,
+        key=f"valence:{artist_id}",
+        iterations=config.VALENCE_BOOTSTRAP["iterations"],
+        alpha=config.VALENCE_BOOTSTRAP["alpha"],
+        min_n=config.VALENCE_BOOTSTRAP["min_n"],
+    )
     diagnostics = {
         "n": len(ms),
         "n_raw": len(all_ms),
@@ -337,9 +332,13 @@ def valence(cohort: Cohort, artist_id: str) -> Tuple[float, float, Dict]:
         "share_neutral": round(neu, 4),
         "share_negative": round(neg, 4),
         "label": valence_label(mean),
+        "ci_low": None if lo is None else round(lo, 4),
+        "ci_high": None if hi is None else round(hi, 4),
+        "ci": ci_diag,
         "note": (
             "情感极性只描述舆论的语调分布，不代表当事人是否做了被指责的事。"
             "负面比例高可能源于大规模谣言。事实请看 events_verified.jsonl。"
+            "区间来自对提及的重抽样，只回答「换一批帖子，均值会飘多少」。"
         ),
     }
     return mean, sd, diagnostics

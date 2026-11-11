@@ -150,7 +150,7 @@ def _resolve_metric(result: IndexResult, artist_id: str, metric: str) -> float:
     raise ValueError(f"unknown metric in rule: {metric!r}")
 
 
-def run_backtest(result: IndexResult, expectations: Dict[str, Any]) -> BacktestReport:
+def run_backtest(result: IndexResult, expectations: Dict[str, Any], cohort=None) -> BacktestReport:
     report = BacktestReport()
     ids = [a.artist_id for a in result.ranked()]
 
@@ -223,7 +223,51 @@ def run_backtest(result: IndexResult, expectations: Dict[str, Any]) -> BacktestR
             )
         )
 
+    # Stability is only checkable when the cohort is at hand (it requires
+    # recomputing the index under perturbed weights).
+    if cohort is not None:
+        report.checks.extend(_stability_checks(result, expectations, cohort))
+
     return report
+
+
+def _stability_checks(result: IndexResult, expectations: Dict[str, Any], cohort) -> List[Check]:
+    cfg = dict(config.STABILITY)
+    cfg.update(expectations.get("stability") or {})
+    if cfg.get("enabled") is False:
+        return []
+
+    delta = float(cfg.get("weight_delta", 0.05))
+    rows = weight_sensitivity(
+        cohort,
+        result.weights,
+        normalization=result.normalization,
+        deltas=(delta, -delta),
+    )
+    worst_rank = max(rows, key=lambda r: r["max_rank_shift"])
+    worst_stars = max(rows, key=lambda r: r["max_star_shift"])
+    rank_limit = int(cfg.get("max_rank_shift", 2))
+    stars_limit = float(cfg.get("max_stars_shift", 0.6))
+
+    return [
+        Check(
+            "stability.rank_shift",
+            worst_rank["max_rank_shift"] <= rank_limit,
+            f"单因子权重 ±{delta:.0%} 时最大名次位移 {worst_rank['max_rank_shift']} 名"
+            f"（{worst_rank['label_zh']}，阈值 ≤ {rank_limit}）",
+        ),
+        Check(
+            "stability.stars_shift",
+            worst_stars["max_star_shift"] <= stars_limit,
+            f"单因子权重 ±{delta:.0%} 时最大星级位移 {worst_stars['max_star_shift']:.2f} ★"
+            f"（{worst_stars['label_zh']}，阈值 ≤ {stars_limit:.1f}）"
+            + (
+                ""
+                if worst_stars["max_star_shift"] <= stars_limit
+                else "  ← 这个因子的测量还不可靠，先修测量再谈权重"
+            ),
+        ),
+    ]
 
 
 def load_expectations(path: Path) -> Dict[str, Any]:
@@ -267,6 +311,7 @@ def weight_sensitivity(
     rows: List[Dict[str, Any]] = []
     for factor in config.FACTORS:
         worst = 0
+        worst_stars = 0.0
         details = []
         for delta in deltas:
             trial = dict(base_weights)
@@ -274,16 +319,21 @@ def weight_sensitivity(
             res = compute_index(cohort, weights=trial, normalization=normalization)
             trial_rank = {a.artist_id: i + 1 for i, a in enumerate(res.ranked())}
             shift = max(abs(base_rank[i] - trial_rank[i]) for i in base_rank)
+            star_shift = max(abs(base.by_id(i).stars - res.by_id(i).stars) for i in base_rank)
             worst = max(worst, shift)
-            details.append({"delta": delta, "max_rank_shift": shift})
+            worst_stars = max(worst_stars, star_shift)
+            details.append(
+                {"delta": delta, "max_rank_shift": shift, "max_star_shift": round(star_shift, 3)}
+            )
         rows.append(
             {
                 "factor": factor,
                 "label_zh": config.FACTOR_META[factor]["zh"],
                 "max_rank_shift": worst,
+                "max_star_shift": round(worst_stars, 3),
                 "trials": details,
                 "stable": worst <= 1,
             }
         )
-    rows.sort(key=lambda r: -r["max_rank_shift"])
+    rows.sort(key=lambda r: (-r["max_rank_shift"], -r["max_star_shift"]))
     return rows

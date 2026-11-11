@@ -41,9 +41,13 @@ pip install -e .            # 零第三方依赖，纯标准库
 
 wii demo                    # 生成确定性合成数据 → data/demo
 wii build                   # 算指数 + 生成 build/report.html（单文件，无外部请求）
-wii validate                # 回测 + 常识断言，失败时退出码 1
+wii validate                # 回测 + 常识断言 + 权重稳定性，失败时退出码 1
 wii explain --artist a01    # 打印某人星级的完整算法拆解
-wii sensitivity             # 权重 ±5% 扰动下的排名稳定性
+wii sensitivity             # 权重 ±5% 扰动下的排名与星级稳定性
+
+# 真实数据没有现成情感分？用内置词典基线从文本打分
+wii sentiment --data data/demo --out build/mentions.scored.jsonl --compare
+wii build --data data/demo --sentiment lexicon   # 不信任文件里的 sentiment 时
 ```
 
 打开 `build/report.html` 即可。任何一条命令都不联网；接大模型抽取时才需要 `WII_LLM_API_KEY`。
@@ -55,20 +59,22 @@ wii sensitivity             # 权重 ±5% 扰动下的排名稳定性
 | [METHODOLOGY.md](METHODOLOGY.md) | 想复算星级、想知道每个因子怎么来的、想看已知缺陷 |
 | [ETHICS.md](ETHICS.md) | **跑真实数据之前**。法律风险、准入清单、更正/删除流程、我们明确不做的事 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 想提 PR。改因子要过哪五关、代码风格、提交规范 |
-| [CHANGELOG.md](CHANGELOG.md) | 想知道 v1.0.0 到底做了哪些取舍 |
+| [CHANGELOG.md](CHANGELOG.md) | 想知道 v1.1.0 到底做了哪些取舍 |
 | [PUBLISHING.md](PUBLISHING.md) | 想 fork 一份发自己的 GitHub / Pages |
 | [CITATION.cff](CITATION.cff) | 要引用它 |
 
 在 demo 数据上，校验层的输出（可自行复现）：
 
 ```
-PASS  (10/10 项通过)
+PASS  (12/12 项通过)
   [✓] rank_recovery.spearman:  Spearman ρ = 0.960（阈值 ≥ 0.80，n = 10）
   [✓] rank_recovery.kendall:   Kendall τ = 0.909（阈值 ≥ 0.60）
   [✓] rank_recovery.top3:      Top-3 重合 2/3（要求 ≥ 2）
   [✓] rule:塌房顶流应≥7.5 星          实测 9.5
   [✓] rule:塌房顶流极性应为明显负值     实测 -0.58
   [✓] rule:央媒集体发声者权威百分位≥0.8  实测 1.00
+  [✓] stability.rank_shift:    单因子权重 ±5% 最大位移 1 名（阈值 ≤ 2）
+  [✓] stability.stars_shift:   单因子权重 ±5% 最大位移 0.30 ★（阈值 ≤ 0.6）
   ...
 ```
 
@@ -78,7 +84,7 @@ PASS  (10/10 项通过)
 |---|---|---|---|---|
 | 触达规模 | 0.22 | 有多少人可能看到了？ | 话题阅读量、讨论量、热搜条数、跨平台覆盖数 | 对数缩放 + 平台广度，加权合成 |
 | 持续时间 | 0.18 | 烧了多久才凉？ | 每日提及量曲线 | 有效发酵天数（≥ 峰值 25%）+ 衰减半衰期（对数线性拟合） |
-| 情感强度 | 0.15 | 情绪有多浓？ | 逐条情感分 | **绝对值**加权均值，正负都算强度 |
+| 情感强度 | 0.15 | 情绪有多浓？ | 逐条情感分（`wii sentiment` 可从文本生成） | **绝对值**加权均值，正负都算强度 |
 | 跨圈层外溢 | 0.15 | 出娱乐版了吗？ | 提及的垂类分布 + 已核实事件的垂类 | 按垂类距离加权求和 |
 | 行为改变 | 0.15 | 有人因此改变行为吗？ | 代言增减、票房/销量、项目取消、机构回应 | 只从**已核实事件**计数，封顶 |
 | 权威介入 | 0.15 | 官方下场了吗？ | 央媒、地方官媒、行业协会、监管 | 分层加权计数，封顶 |
@@ -91,12 +97,19 @@ stars = 1 + 9 · M             显示保留 1 位小数
 valence = Σ weight · s / Σ weight    单独报告，不进星级
 ```
 
+### 极性与它的区间
+
+`valence` 还带一个 95% 自助法区间：重抽样单位是单条提及，随机种子由 `artist_id` 派生，所以同一份数据永远得到同一个区间，截图可以被复核。样本少于 30 条时不给区间——样本小的时候，区间只会假装精确。**触达没有区间**：平台阅读量是计数不是抽样，给它配区间是假精度。
+
+没有现成情感分时，`wii sentiment` 会用内置词典基线（否定、程度副词、反讽规则）直接从文本打分。它是一份可审计的对照物，不是"更好的模型"：跑 `--compare` 会输出与文件里原有打分的 MAE、同号率，谁更接近真相要你自己用标注集判断。
+
 ## 这个指数不是什么
 
 诚实清单，每一条都在报告页脚再印一遍：
 
 - **不是影响力**，是**注意力**。热度高可能只是被骂得惨；真正深远的影响（推动行业规范）热度往往不高。命名上它是 attention index，不是 impact index。
 - **不是民意调查。** 中文反讽（"呵呵""真有你的"）会让词典法情感分析系统性出错；控评和水军只能靠账号加权缓解。极性数字应读作"语调分布"。
+- **极性区间不是准确率。** 它只回答"换一批帖子，这个均值会飘多少"，不回答"打分对不对"。后者只能靠标注集（`wii audit-*` 与 `wii sentiment --compare`）。
 - **不是事实认定。** 事实只看 `events_verified.jsonl`，且每条必须有信源。
 - **跨年代不可比。** 2010 年前没有可比的社交媒体计数。同一 cohort、同一窗口内才可比。
 - **分位数归一化下，cohort 里必然有人落在 1 星**。那表示"在这批人里最低"，不是"不值一提"。
@@ -125,22 +138,27 @@ src/wii/
 ├── score/
 │   ├── factors.py       # 六因子的原始量 + 诊断信息
 │   ├── normalize.py     # 分位数 / Z 分数→正态 CDF
+│   ├── stats.py         # 加权均值/标准差、分位数、自助法区间（无 numpy）
 │   ├── index.py         # 加权合成 → 星级；极性单独一路
 │   └── explain.py       # "为什么是 7 星不是 6 星"的算术拆解
-├── validate/backtest.py # Spearman/Kendall、Top-K、常识断言、权重敏感性
+├── sentiment/
+│   ├── lexicon.py       # 可审计词典：极性词、否定、程度副词、反讽标记
+│   └── scorer.py        # 文本 → 极性 + 命中词 + 置信度（启发式，不是概率）
+├── validate/backtest.py # Spearman/Kendall、Top-K、常识断言、权重稳定性
 └── report/
     ├── svg.py           # 手写 SVG 图表（无 JS、无 CDN、离线可开）
     └── build.py         # 自包含 HTML 报告
-tests/                   # 58 个用例，全部离线
+tests/                   # 84 个用例，全部离线
 ```
 
 ## 路线图
 
-- [ ] 情感打分内置词典法 + 反讽规则基线（当前 demo 数据自带情感分，真实数据需要自己跑）
-- [ ] 权重敏感性自动化进 `wii validate`
-- [ ] 置信区间：对极性做自助法（bootstrap）；触达是平台口径计数，不做假区间
-- [ ] GitHub Pages 自动发布 `build/report.html`
+- [x] 情感打分内置词典法 + 反讽规则基线（`wii sentiment`，含否定/程度副词）
+- [x] 权重敏感性自动化进 `wii validate`（名次位移 + 星级位移两项）
+- [x] 置信区间：对极性做自助法（bootstrap）；触达是平台口径计数，不做假区间
+- [x] GitHub Pages 自动发布 demo 报告（`.github/workflows/pages.yml`）
 - [ ] 多窗口滚动对比（同口径、不同窗口，明确标注不可跨窗排名）
+- [ ] 极性打分接微调模型，并把词典基线的 MAE 作为回归门槛
 
 ## 引用
 
@@ -161,4 +179,4 @@ MIT，附一条伦理使用提示（见 LICENSE 文末）。指数衡量公开�
 
 ### English summary
 
-A reproducible, fully auditable 1–10 star **relative** index of public *attention* on Weibo. Stars live on a magnitude axis built from six measurable factors (reach, duration, emotional intensity, cross-circle spillover, behaviour change, authority intervention); sentiment polarity is reported on a separate axis and never folded into the score. "Verified events" (each with a mandatory source URL) and "opinion mentions" are two different tables that are never merged. The synthetic demo cohort embeds a latent ground truth the scorer cannot see, and `wii validate` checks rank recovery (Spearman ρ ≥ 0.80) plus common-sense archetype assertions. Zero third-party dependencies; the report is a single self-contained HTML file with hand-rolled SVG charts. **The repository deliberately ships no crawler** — collection is expected to come from licensed vendors or your own compliant collector, via two documented import formats. See [METHODOLOGY.md](METHODOLOGY.md) and [ETHICS.md](ETHICS.md).
+A reproducible, fully auditable 1–10 star **relative** index of public *attention* on Weibo. Stars live on a magnitude axis built from six measurable factors (reach, duration, emotional intensity, cross-circle spillover, behaviour change, authority intervention); sentiment polarity is reported on a separate axis and never folded into the score. "Verified events" (each with a mandatory source URL) and "opinion mentions" are two different tables that are never merged. Polarity carries a seeded bootstrap 95% interval (posts are the resampling unit; reach deliberately has none, because read counts are counters, not samples). An offline lexicon scorer with negation, degree and irony rules (`wii sentiment`) covers the case where your export has text but no sentiment labels. The synthetic demo cohort embeds a latent ground truth the scorer cannot see, and `wii validate` checks rank recovery (Spearman ρ ≥ 0.80), six common-sense archetype assertions, and weight stability under ±5% perturbations. Zero third-party dependencies; the report is a single self-contained HTML file with hand-rolled SVG charts. **The repository deliberately ships no crawler** — collection is expected to come from licensed vendors or your own compliant collector, via two documented import formats. See [METHODOLOGY.md](METHODOLOGY.md) and [ETHICS.md](ETHICS.md).
