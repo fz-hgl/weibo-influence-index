@@ -3,7 +3,7 @@
 从本地目录到 GitHub 上可被审阅的公开仓库。全部命令在仓库根目录执行。
 
 > 这份清单默认你把仓库放在 `github.com/<你的账号>/weibo-influence-index`。
-> 请先全局替换 `OWNER`：README、pyproject、CITATION 里的占位符一共 4 处。
+> 请先全局替换 `fz-hgl`：README、pyproject、CITATION 里的占位符一共 4 处。
 
 ---
 
@@ -34,16 +34,16 @@ grep -rn "weibo.com\|weibo.cn" data/ src/ docs/ | grep -v "example.com" || echo 
 
 ```bash
 # macOS / Linux
-grep -rl "OWNER" README.md pyproject.toml CITATION.cff 2>/dev/null | xargs sed -i '' 's/OWNER/<你的账号>/g'
+grep -rl "fz-hgl" README.md pyproject.toml CITATION.cff 2>/dev/null | xargs sed -i '' 's/fz-hgl/<你的账号>/g'
 
 # Windows (Git Bash)
-grep -rl "OWNER" README.md pyproject.toml CITATION.cff 2>/dev/null | xargs sed -i 's/OWNER/<你的账号>/g'
+grep -rl "fz-hgl" README.md pyproject.toml CITATION.cff 2>/dev/null | xargs sed -i 's/fz-hgl/<你的账号>/g'
 ```
 
 替换后确认：
 
 ```bash
-grep -rn "OWNER" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=build
+grep -rn "fz-hgl" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=build
 ```
 
 ---

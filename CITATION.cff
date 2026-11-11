@@ -21,11 +21,11 @@ keywords:
   - explainable metrics
 authors:
   - name: "weibo-influence-index contributors"
-repository-code: "https://github.com/OWNER/weibo-influence-index"
-url: "https://github.com/OWNER/weibo-influence-index"
+repository-code: "https://github.com/fz-hgl/weibo-influence-index"
+url: "https://github.com/fz-hgl/weibo-influence-index"
 identifiers:
   - type: url
-    value: "https://github.com/OWNER/weibo-influence-index"
+    value: "https://github.com/fz-hgl/weibo-influence-index"
     description: "Source repository"
 references:
   - type: software

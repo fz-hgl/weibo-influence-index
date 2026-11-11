@@ -29,8 +29,8 @@ http = []
 wii = "wii.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/OWNER/weibo-influence-index"
-Issues = "https://github.com/OWNER/weibo-influence-index/issues"
+Homepage = "https://github.com/fz-hgl/weibo-influence-index"
+Issues = "https://github.com/fz-hgl/weibo-influence-index/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

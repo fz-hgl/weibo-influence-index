@@ -1,6 +1,6 @@
 # 微博舆论影响力指数 · Weibo Attention & Influence Index
 
-[![CI](https://github.com/OWNER/weibo-influence-index/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/weibo-influence-index/actions/workflows/ci.yml)
+[![CI](https://github.com/fz-hgl/weibo-influence-index/actions/workflows/ci.yml/badge.svg)](https://github.com/fz-hgl/weibo-influence-index/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Dependencies: none](https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg)](pyproject.toml)
@@ -35,7 +35,7 @@
 ## 快速开始
 
 ```bash
-git clone https://github.com/OWNER/weibo-influence-index.git
+git clone https://github.com/fz-hgl/weibo-influence-index.git
 cd weibo-influence-index
 pip install -e .            # 零第三方依赖，纯标准库
 
@@ -166,7 +166,7 @@ tests/                   # 84 个用例，全部离线
 @software{weibo_influence_index_2026,
   title  = {Weibo Attention \& Influence Index},
   year   = {2026},
-  url    = {https://github.com/OWNER/weibo-influence-index},
+  url    = {https://github.com/fz-hgl/weibo-influence-index},
   note   = {A reproducible public-attention index; magnitude and sentiment polarity are reported on separate axes.}
 }
 ```
